@@ -1,0 +1,62 @@
+"""
+Написать программу, которая принимает на вход fasta файл, 
+содержащий множественное варывнивание нуклеотидных последовательностей, 
+кодирующих белок, и возвращает отношение синонимичных и несинонимичных замен.
+---
+Нуклеотидные замены происходящие в участках кодирующих белок могут быть разделены 
+на синонимичные (ks), если они не меняют кодируемой аминокислотной последовательности, и 
+несинонимичные если меняют (ka).
+"""
+from argparse import ArgumentParser
+from collections import OrderedDict
+
+def fasta_file_opener(path):
+        data_dict = OrderedDict()
+        header = None
+        f = open(path, 'r')
+        for line in f:
+            if line.startswith('>'):
+                header = line[1:].strip().split(' ')[0]
+                data_dict[header] = []
+            else:
+                data_dict[header].append(line.rstrip().upper())
+        f.close()
+        for name in data_dict:
+            data_dict[name] = ''.join(data_dict[name])
+        return data_dict
+
+def main():
+    ka = 0
+    ks = 0
+    flag = False
+    aligment = fasta_file_opener(args.input)
+    reference = list(aligment.values())[0]
+    sequences = list(aligment.values())[1:]
+    for i in range(0, len(reference), 3): # no shift codons
+        triple = reference[i:i + 3]
+        if triple == 'ATG':
+            flag = True
+        elif triple in ['TAG', 'TGA', 'TAA']:
+            flag = False
+        # print(triple)
+        print(flag)
+        for seq in sequences:
+            if reference[i:i + 3] != seq[i:i + 3]:
+                if flag:
+                    ks += 1
+                else:
+                    ka += 1
+    print ("ka = %s, ks = %s" % (ka, ks))
+    try:
+        print("Result: ", ka / ks)
+    except ZeroDivisionError:
+        print("Result: 0")
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description="ka/ks ratio calculation")
+    group_required = parser.add_argument_group('Required options')
+    group_required.add_argument('-i', '--input', type=str, 
+                                required=True, help="input FASTA file")
+    args = parser.parse_args()
+    main()

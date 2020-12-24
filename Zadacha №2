@@ -1,0 +1,52 @@
+"""
+Написать программу, которая принимает на вход fasta файл 
+с множественным выравниванием нуклеотидных последовательностей и возвращает vcf файл 
+с указанием замен. Первую последовательность в файле считать за референсную. 
+В выравнивании присутствуют только замены.
+"""
+from argparse import ArgumentParser
+from collections import OrderedDict
+
+def fasta_file_opener(path):
+    data_dict = OrderedDict()
+    header = None
+    f = open(path, 'r')
+    for line in f:
+        if line.startswith('>'):
+            header = line[1:].strip().split(' ')[0]
+            data_dict[header] = []
+        else:
+            data_dict[header].append(line.rstrip().upper())
+    f.close()
+    for name in data_dict:
+        data_dict[name] = ''.join(data_dict[name])
+    return data_dict
+
+
+def main():
+    vcf_output = open(args.output + ".vcf", "a")
+    vcf_header = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"
+    vcf_output.writelines(vcf_header + "\n")
+    aligment = fasta_file_opener(args.input)
+    reference = list(aligment.values())[0]
+    sequences = list(aligment.items())[1:]
+    for i in range(len(reference)):
+        for key, seq in sequences:
+            if reference[i] != seq[i]:
+                chrom = key
+                pos = str(i + 1)
+                id_vcf = "."
+                ref, alt = reference[i], seq[i]
+                outline = "\t".join([chrom, pos, id_vcf, ref, alt, ".", ".", ".", "."])
+                vcf_output.writelines(outline + "\n")
+                
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description="FASTA aligments file SNPs to VCF file")
+    group_required = parser.add_argument_group('Required options')
+    group_required.add_argument('-i', '--input', type=str, 
+                                required=True, help="input FASTA file")
+    group_required.add_argument('-o', '--output', type=str, 
+                                default='output', help='output VCF prefix')
+    args = parser.parse_args()
+    main()
